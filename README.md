@@ -3,7 +3,7 @@ Auto setup Raspberry Pi OS for Raspberry Pi Board from Ubuntu or other Linux Dis
 
 ---
 
-MIT License
+# MIT License
 
 Copyright (c) 2020 TypeNaN
 

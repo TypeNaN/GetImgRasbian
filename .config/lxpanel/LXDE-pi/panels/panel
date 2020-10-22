@@ -67,6 +67,9 @@ Plugin {
     Button {
       id=rp-bookshelf.desktop
     }
+    Button {
+      id=mousepad.desktop
+    }
   }
 }
 Plugin {

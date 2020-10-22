@@ -1,2 +1,5 @@
 # ignore
 your_scripts/*
+os_img/*
+download.pid
+progress.txt

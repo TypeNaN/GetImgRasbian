@@ -1,4 +1,5 @@
 # ignore
+configure.sh
 your_scripts/*
 os_img/*
 download.pid

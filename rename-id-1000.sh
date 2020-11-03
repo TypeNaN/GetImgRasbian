@@ -23,7 +23,6 @@ if ! [[ -z $1 ]]; then
     grep -E --color "${NAME}" /etc/passwd
     mv /etc/sudoers.d/010_pi-nopasswd /etc/sudoers.d/010_$NAME-nopasswd
     sed -i "s/pi/${NAME}/g" /etc/sudoers.d/010_$NAME-nopasswd
-    # mv /root/.ssh /home/$NAME/
     sed -i "s/Pi/${NAME}/g" /home/$NAME/.bashrc
     chown $NAME:$NAME /home/$NAME/.bashrc
     chown -R $NAME:$NAME /home/$NAME/.ssh/
@@ -31,6 +30,7 @@ if ! [[ -z $1 ]]; then
       sed -i "s/^\(autologin-user\s*=\s*\).*\$/\1${NAME}/" /etc/lightdm/lightdm.conf
     fi
     # sed -i "s/#PermitEmptyPasswords no/PermitEmptyPasswords no/g" /etc/ssh/sshd_config
+    sed -i "33iPermitRootLogin no\n" /etc/ssh/sshd_config
     rm -rf /root/.ssh
     rm -rf $0
     reboot
@@ -54,7 +54,6 @@ else
         grep -E --color "${NAME}" /etc/passwd
         mv /etc/sudoers.d/010_pi-nopasswd /etc/sudoers.d/010_$NAME-nopasswd
         sed -i "s/pi/${NAME}/g" /etc/sudoers.d/010_$NAME-nopasswd
-        # mv /root/.ssh /home/$NAME/
         sed -i "s/Pi/${NAME}/g" /home/$NAME/.bashrc
         chown $NAME:$NAME /home/$NAME/.bashrc
         chown -R $NAME:$NAME /home/$NAME/.ssh/

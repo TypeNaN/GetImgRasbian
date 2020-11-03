@@ -4,39 +4,9 @@
 
 
 ################################################################################
-# CONFIGURE
+# IMPORT CONFIGURE
 ################################################################################
-# Publice key for remote access to your raspberry pi
-# AUTH_KEY="/path/to/publickey.pub"
-AUTH_KEY=""
-
-
-# raspberry pi host name
-RPI_HOSTNAME="raspberrypi"
-
-
-# WiFi
-# static IP address
-# Google DNS
-AP_NICKNAME="Nick Name For Access point"
-AP_BSSID="xx:xx:xx:xx:xx:xx"
-AP_SSID="Your SSID Name"
-AP_PASS="Your Password"
-GETWAY="192.168.1"
-ROUTER="${GETWAY}.1"                      # 192.168.1.1
-STATIC_FIXIP="85"
-STATIC_IP="${GETWAY}.${STATIC_FIXIP}"     # 192.168.1.85
-STATIC_DNS="8.8.8.8 8.8.4.4 2001:4860:4860::8888 2001:4860:4860::8844"
-HIDDEN_NETWORK=false
-
-
-# Keyboard Layout
-KBLAYOUT="us,th"
-
-
-# Seconds Language
-LANGUAGE="th_TH.UTF-8"
-TIMEZONE="Asia/Bangkok"
+source configure.sh
 
 
 ################################################################################
@@ -210,9 +180,9 @@ function main() {
   		--ok-button "CHOOSE" \
   		--cancel-button "CANCEL" \
   		--menu "INSTALL RASPBERRY PI OS TO /DEV/${DEVICE^^}" 14 85 4 \
-  			"full" "Raspbian with desktop and recommended software   " \
-  			"mini" "Raspbian with desktop" \
-        "lite" "Raspbian with console" 3>&1 1>&2 2>&3)
+  			"full" "RASPBERRY PI OS with desktop and recommended software   " \
+  			"mini" "RASPBERRY PI OS with desktop" \
+        "lite" "RASPBERRY PI OS with console" 3>&1 1>&2 2>&3)
   local RES=$?
 	case ${RES} in
 		0)
@@ -275,9 +245,7 @@ function existimg() {
   # echo -e "OSIMG              : ${CGreen}${OSIMG}${CReset}"
 
   echo -e "OSDIR              : ${CGreen}${OSDIR}${CReset}"
-
   OSDIRNAME=$(echo ${OSDIR} | sed -r "s/${WORKDIR}\///g")
-
   if [[ "${OSSHA256}" == "1" ]]; then
     LISTDESKFULL=($(find "${OSDIR}" -type f -iname "*full.img" | sed -r "s/\.\///g" | sed -r "s/${OSDIRNAME}\///g"))
     case ${#LISTDESKFULL[@]} in
@@ -358,161 +326,204 @@ function diffimg() {
 
 
 ################################################################################
-# CHECK SUM FILE IMG
+# CHECK SUM IMG
 ################################################################################
 function checkimg() {
-  if ! [[ -f "${OSDIR}/${OSIMG}" ]]; then
-    USEIMG_MENU=$(
-      whiptail \
-        --clear \
-    		--backtitle "SETUP RASPBERRY PI OS" \
-    		--title "CHOOSE RASPBERRY PI OS" \
-    		--ok-button "CHOOSE" \
-    		--cancel-button "CANCEL" \
-    		--menu "RASPBERRY PI OS" 14 85 4 \
-    			"USE CURRENT" "${OSIMG}   " \
-          "EXTRACT" "${OS}.zip   " \
-    			"NEW DOWNLOAD" "${OS}.zip   " 3>&1 1>&2 2>&3)
-    local RES=$?
-  	case ${RES} in
-  		0)
-  			case ${USEIMG_MENU} in
-  				"USE CURRENT")
-            echo "USE CURRENT ${USEIMG_MENU}"
-            echo -e "\n\n${CGreen}!!! use current ${OSIMG} !!!${CReset}"
-            echo -e "${CGreen}Pre-config ${OSIMG}${CReset}\n\n"
-            burnimg
-  					;;
-  				"EXTRACT")
-            if [[ -f "${OSDIR}/${OS}.zip" ]]; then
-              echo -e "\n\n${CGreen}!!! Extract ${OS} and install !!!${CReset}\n\n"
-              diffimg
-              local RES=$?
-              if [[ "${RES}" -eq "0" ]]; then
-                unzip -o "${OSDIR}/${OS}.zip" -d "${OSDIR}/"
-                existimg
-                mountimg
-                editimg
-                umountimg
-                burnimg
-              else
-                rm "${OSDIR}/${OS}.zip"
-                download
-                checkimg
-              fi
-            else
-              echo -e "\n\n${CRed}!!! ${OS} Not found, Need download ${OS} before !!!${CReset}\n\n"
+  if [[ -f "${OSDIR}/${OSIMG}" ]]; then
+    echo -e "Found              : ${CGreen}${OSDIR}/${OSIMG}${CReset}"
+    if [[ -f "${OSDIR}/${OS}.zip" ]]; then
+      echo -e "Found              : ${CGreen}${OSDIR}/${OS}.zip${CReset}"
+      USEIMG_MENU=$(
+        whiptail \
+          --clear \
+      		--backtitle "SETUP RASPBERRY PI OS" \
+      		--title "CHOOSE RASPBERRY PI OS" \
+      		--ok-button "CHOOSE" \
+      		--cancel-button "CANCEL" \
+      		--menu "RASPBERRY PI OS" 14 85 4 \
+      			"USE CURRENT" "${OSIMG}   " \
+            "EXTRACT" "${OS}.zip   " \
+      			"NEW DOWNLOAD" "${OS}.zip   " 3>&1 1>&2 2>&3)
+      local RES=$?
+    	case ${RES} in
+    		0)
+    			case ${USEIMG_MENU} in
+    				"USE CURRENT")
+              usethisimg
+    					;;
+    				"EXTRACT")
+              extractthiszip
+    					;;
+    				"NEW DOWNLOAD")
               download
-              diffimg
-              local RES=$?
-              if [[ "${RES}" -eq "0" ]]; then
-                unzip -o "${OSDIR}/${OS}.zip" -d "${OSDIR}/"
-                existimg
-                mountimg
-                editimg
-                umountimg
-                burnimg
-              else
-                echo -e "\n\n${CRed}!!! Delete .img and download ${OS} again !!!${CReset}\n\n"
-                rm "${OSDIR}/${OS}.zip"
-                download
-                checkimg
-              fi
-            fi
-  					;;
-  				"NEW DOWNLOAD")
-            echo -e "\n\n${CRed}!!! Delete .img and download ${OS} again !!!${CReset}\n\n"
-            download
-            checkimg
-  					;;
-  			esac
-  			;;
-  		1)
-        finish
-  			exit 0
-  			;;
-  		255)
-        finish
-  			exit 0
-        ;;
-  	esac
-  elif [[ -f "${OSDIR}/${OS}.zip" ]]; then
-    USEOS_MENU=$(
-      whiptail \
-        --clear \
-    		--backtitle "SETUP RASPBERRY PI OS" \
-    		--title "CHOOSE RASPBERRY PI OS" \
-    		--ok-button "CHOOSE" \
-    		--cancel-button "CANCEL" \
-    		--menu "RASPBERRY PI OS" 14 85 4 \
-          "EXTRACT" "${OS}.zip   " \
-    			"NEW DOWNLOAD" "${OS}.zip   " 3>&1 1>&2 2>&3)
-    local RES=$?
-  	case ${RES} in
-  		0)
-  			case ${USEOS_MENU} in
-  				"EXTRACT")
-            echo -e "\n\n${CGreen}!!! Extract ${OS} and install !!!${CReset}\n\n"
-            diffimg
-            local RES=$?
-            if [[ "${RES}" -eq "0" ]]; then
-              unzip -o "${OSDIR}/${OS}.zip" -d "${OSDIR}/"
-              existimg
-              mountimg
-              editimg
-              umountimg
-              burnimg
-            else
-              echo -e "\n\n${CRed}!!! Download ${OS} error !!!${CReset}\n\n"
-              rm "${OSDIR}/${OS}.zip"
-            fi
-  					;;
-  				"NEW DOWNLOAD")
-            echo -e "\n\n${CRed}!!! Delete .img and download ${OS} again !!!${CReset}\n\n"
-            rm "${OSDIR}/${OS}.zip"
-            download
-            diffimg
-            local RES=$?
-            if [[ "${RES}" -eq "0" ]]; then
-              unzip -o "${OSDIR}/${OS}.zip" -d "${OSDIR}/"
-              existimg
-              mountimg
-              editimg
-              umountimg
-              burnimg
-            else
-              echo -e "\n\n${CRed}!!! Download ${OS} error !!!${CReset}\n\n"
-              rm "${OSDIR}/${OS}.zip"
-            fi
-  					;;
-  			esac
-  			;;
-  		1)
-        finish
-  			exit 0
-  			;;
-  		255)
-        finish
-  			exit 0
-        ;;
-  	esac
-  else
-    echo -e "\n\n${CRed}!!! Need download ${OS} before !!!${CReset}\n\n"
-    download
-    diffimg
-    local RES=$?
-    if [[ "${RES}" -eq "0" ]]; then
-      unzip -o "${OSDIR}/${OS}.zip" -d "${OSDIR}/"
-      existimg
-      mountimg
-      editimg
-      umountimg
-      burnimg
+              extractthiszip
+    					;;
+    			esac
+    			;;
+    		1)
+          finish
+    			exit 0
+    			;;
+    		255)
+          finish
+    			exit 0
+          ;;
+    	esac
     else
-      rm "${OSDIR}/${OS}.zip"
-      echo -e "\n\n${CRed}!!! Download ${OS} error !!!${CReset}\n\n"
+      echo -e "Not Found          : ${CGreen}${OSDIR}/${OS}.zip${CReset}"
+      USEIMG_MENU=$(
+        whiptail \
+          --clear \
+      		--backtitle "SETUP RASPBERRY PI OS" \
+      		--title "CHOOSE RASPBERRY PI OS" \
+      		--ok-button "CHOOSE" \
+      		--cancel-button "CANCEL" \
+      		--menu "RASPBERRY PI OS" 14 85 4 \
+      			"USE CURRENT" "${OSIMG}   " \
+      			"NEW DOWNLOAD" "${OS}.zip   " 3>&1 1>&2 2>&3)
+      local RES=$?
+    	case ${RES} in
+    		0)
+    			case ${USEIMG_MENU} in
+    				"USE CURRENT")
+              usethisimg
+    					;;
+    				"NEW DOWNLOAD")
+              download
+              extractthiszip
+    					;;
+    			esac
+    			;;
+    		1)
+          finish
+    			exit 0
+    			;;
+    		255)
+          finish
+    			exit 0
+          ;;
+    	esac
+    fi
+  else
+    echo -e "Not Found          : ${CGreen}${OSDIR}/${OSIMG}${CReset}"
+    if [[ -f "${OSDIR}/${OS}.zip" ]]; then
+      echo -e "Found              : ${CGreen}${OSDIR}/${OS}.zip${CReset}"
+      USEIMG_MENU=$(
+        whiptail \
+          --clear \
+      		--backtitle "SETUP RASPBERRY PI OS" \
+      		--title "CHOOSE RASPBERRY PI OS" \
+      		--ok-button "CHOOSE" \
+      		--cancel-button "CANCEL" \
+      		--menu "RASPBERRY PI OS" 14 85 4 \
+            "EXTRACT" "${OS}.zip   " \
+      			"NEW DOWNLOAD" "${OS}.zip   " 3>&1 1>&2 2>&3)
+      local RES=$?
+    	case ${RES} in
+    		0)
+    			case ${USEIMG_MENU} in
+    				"EXTRACT")
+              extractthiszip
+    					;;
+    				"NEW DOWNLOAD")
+              download
+              extractthiszip
+    					;;
+    			esac
+    			;;
+    		1)
+          finish
+    			exit 0
+    			;;
+    		255)
+          finish
+    			exit 0
+          ;;
+    	esac
+    else
+      echo -e "Not Found          : ${CGreen}${OSDIR}/${OS}.zip${CReset}"
+      download
+      extractthiszip
     fi
   fi
+}
+
+
+################################################################################
+# USE THIS IMG
+################################################################################
+function usethisimg() {
+  echo "USE CURRENT ${USEIMG_MENU}"
+  echo -e "\n\n${CGreen}!!! use current ${OSIMG} !!!${CReset}\n\n"
+  burnimg
+}
+
+
+################################################################################
+# USE THIS IMG
+################################################################################
+function extractthiszip() {
+  echo -e "\n\n${CGreen}!!! Extract ${OS} and install !!!${CReset}\n\n"
+  diffimg
+  local RES=$?
+  if [[ "${RES}" -eq "0" ]]; then
+    echo -e "${CGreen}Extracting ${OS}....${CReset}"
+    OSIMG=$(unzip -o "${OSDIR}/${OS}.zip" -d "${OSDIR}/" | sed -n 2p | awk -F "${OSDIR}/" '{print $2}')
+    echo "extractthiszip  as ${OSIMG}"
+    imgidentical
+  else
+    echo -e "${CGreen}Differ ${OS}....${CReset}"
+    rm "${OSDIR}/${OS}.zip"
+    imgdiffer
+  fi
+}
+
+
+################################################################################
+# IMG IDENTICAL
+################################################################################
+function imgidentical() {
+  echo -e "${CGreen}Installing ${OSIMG}....${CReset}"
+  mountimg
+  editimg
+  umountimg
+  burnimg
+}
+
+
+################################################################################
+# IMG IDENTICAL
+################################################################################
+function imgdiffer() {
+  echo -e "\n\n${CRed}!!! Delete .img and download ${OS} again !!!${CReset}\n\n"
+  USEIMG_MENU=$(
+    whiptail \
+      --clear \
+      --backtitle "SETUP RASPBERRY PI OS" \
+      --title "DOWNLOAD RASPBERRY PI OS AGAIN" \
+      --ok-button "OK" \
+      --cancel-button "CANCEL" \
+      --menu "RASPBERRY PI OS : ${OS}.zip \nCheck sum don't match" 14 85 4 \
+        "DOWNLOAD AGAIN" "${OS}.zip   " 3>&1 1>&2 2>&3)
+  local RES=$?
+  case ${RES} in
+    0)
+      case ${USEIMG_MENU} in
+        "DOWNLOAD AGAIN")
+          download
+          extractthiszip
+          ;;
+      esac
+      ;;
+    1)
+      finish
+      exit 0
+      ;;
+    255)
+      finish
+      exit 0
+      ;;
+  esac
 }
 
 
@@ -585,7 +596,7 @@ function editimg() {
   editwpa
   setup_language_region         # Don't work, Will be overwritten at first boot
   setup_keyboard
-  setup_login_screen
+  setup_desktop_config
   setup_disable_blank_screen
   setup_autologin_user
   add_your_scripts
@@ -637,13 +648,13 @@ function editdhcpcd() {
 
 function editwpa() {
   echo -e "Edit               : ${CGreen}WiFi${CReset}"
-  echo "country=TH" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
+  echo "country=${COUNTRY}" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
   echo -e "\nnetwork={" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
   echo "	id_str=\"${AP_NICKNAME}\"" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
   echo "	bssid=${AP_BSSID}" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
   echo "	ssid=\"${AP_SSID}\"" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
   echo "	psk=\"${AP_PASS}\"" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
-  if ${HIDDEN_NETWORK}; then
+  if [[ "${HIDDEN_NETWORK}" -eq "1" ]]; then
     echo "	scan_ssid=1" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
   else
     echo "	scan_ssid=0" >> ${WORKDIR}/${MIMG2}/etc/wpa_supplicant/wpa_supplicant.conf
@@ -664,7 +675,8 @@ function setup_language_region() {
   echo "LC_ALL=en_GB.UTF-8" >> ${WORKDIR}/${MIMG2}/etc/default/locale
   sed -i '/^#.* th_TH.UTF-8 /s/^#\ //' ${WORKDIR}/${MIMG2}/etc/locale.gen
   echo -e "Setup              : ${CGreen}Time Zone ${TIMEZONE}${CReset}"
-  echo "${TIMEZONE}" > ${WORKDIR}/${MIMG2}/etc/timezone
+  echo "${TIMEZONE}" > ${WORKDIR}/${MIMG2}/etc/timezone   # wrong time.
+                                                          # Need sudo raspi-config to setup again, why?
 }
 
 
@@ -678,7 +690,7 @@ function setup_keyboard() {
 }
 
 
-function setup_login_screen() {
+function setup_desktop_config() {
   if [[ -d "${WORKDIR}/${MIMG2}/usr/share/rpd-wallpaper" ]]; then
     echo -e "Copy               : ${CGreen}Wallpaper${CReset}"
     cp ${WORKDIR}/lain_teddy_bear.jpg ${WORKDIR}/${MIMG2}/usr/share/rpd-wallpaper/
